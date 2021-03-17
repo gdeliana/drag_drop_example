@@ -37,6 +37,8 @@ const App = () => {
 
   const [statistics, setStatistics] = useState(statistics_default);
 
+  const [json_obtained, setJsonObtained] = useState(false);
+
   const deleteItem = (k: number) => {
     const items_clone = [...items];
     items_clone.splice(k, 1);
@@ -139,7 +141,10 @@ const App = () => {
     (async function () {
       try {
         let r = await getJsonRenderer();
-        if (r.records) setItems(r.records);
+        if (r.records) {
+          setItems(r.records);
+          setJsonObtained(true);
+        }
       } catch (e) {
         console.log(e);
       }
@@ -172,135 +177,138 @@ const App = () => {
   
 
 
+  if(json_obtained){
+    return (
+      <Container fluid>
+        {show && (
+          <Modal show={show} onHide={() => setShow(false)}>
+            <Modal.Header closeButton>
+              <Modal.Title>Statistics</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+              <Accordion defaultActiveKey="0">
+                <Card>
+                  <Card.Header>
+                    <Accordion.Toggle as={Button} variant="info" eventKey="0">
+                      Event counts
+                    </Accordion.Toggle>
+                  </Card.Header>
+                  <Accordion.Collapse eventKey="0">
+                    <Card.Body>
+                      {statistics.count_events &&
+                        Object.keys(statistics.count_events).map(
+                          (event_name: string, k: any) => (
+                            <p key={k}>
+                              {event_name}:&nbsp;
+                              {statistics.count_events[event_name]}
+                            </p>
+                          )
+                        )}
+                    </Card.Body>
+                  </Accordion.Collapse>
+                </Card>
+                <Card>
+                  <Card.Header>
+                    <Accordion.Toggle as={Button} variant="info" eventKey="1">
+                      Other statistics
+                    </Accordion.Toggle>
+                  </Card.Header>
+                  <Accordion.Collapse eventKey="1">
+                    <Card.Body>
+                      <p>Min interaction time: {statistics.min_interaction}</p>
+                      <p>Max interaction time: {statistics.max_interaction}</p>
+                      <p>Mean interaction time: {statistics.mean_interaction}</p>
+                      <p>Sum of all interactions: {statistics.sum_interaction}</p>
+                      <p>
+                        Max time of following input types:{" "}
+                        {statistics.max_total_time_input_following}
+                      </p>
+                    </Card.Body>
+                  </Accordion.Collapse>
+                </Card>
+              </Accordion>
+            </Modal.Body>
+            <Modal.Footer>
+              <Button variant="secondary" onClick={() => setShow(false)}>
+                Close
+              </Button>
+            </Modal.Footer>
+          </Modal>
+        )}
 
-  return (
-    <Container fluid>
-      {show && (
-        <Modal show={show} onHide={() => setShow(false)}>
-          <Modal.Header closeButton>
-            <Modal.Title>Statistics</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            <Accordion defaultActiveKey="0">
-              <Card>
-                <Card.Header>
-                  <Accordion.Toggle as={Button} variant="info" eventKey="0">
-                    Event counts
-                  </Accordion.Toggle>
-                </Card.Header>
-                <Accordion.Collapse eventKey="0">
-                  <Card.Body>
-                    {statistics.count_events &&
-                      Object.keys(statistics.count_events).map(
-                        (event_name: string, k: any) => (
-                          <p key={k}>
-                            {event_name}:&nbsp;
-                            {statistics.count_events[event_name]}
-                          </p>
-                        )
-                      )}
-                  </Card.Body>
-                </Accordion.Collapse>
-              </Card>
-              <Card>
-                <Card.Header>
-                  <Accordion.Toggle as={Button} variant="info" eventKey="1">
-                    Other statistics
-                  </Accordion.Toggle>
-                </Card.Header>
-                <Accordion.Collapse eventKey="1">
-                  <Card.Body>
-                    <p>Min interaction time: {statistics.min_interaction}</p>
-                    <p>Max interaction time: {statistics.max_interaction}</p>
-                    <p>Mean interaction time: {statistics.mean_interaction}</p>
-                    <p>Sum of all interactions: {statistics.sum_interaction}</p>
-                    <p>
-                      Max time of following input types:{" "}
-                      {statistics.max_total_time_input_following}
-                    </p>
-                  </Card.Body>
-                </Accordion.Collapse>
-              </Card>
-            </Accordion>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShow(false)}>
-              Close
-            </Button>
-          </Modal.Footer>
-        </Modal>
-      )}
-
-      <Row>
-        <Button
-          onClick={() => {
-            saveJsonRenderer({
-              records: [...items],
-            });
-          }}
-        >
-          Save JSON
-        </Button>
-        &nbsp;
-        <Button onClick={showModal}>Show statistics</Button>
-      </Row>
-      <Row>
-        <DragDropContext onDragEnd={onDragEnd}>
-          <Table style={{
-				 tableLayout: 'auto'
-			 }}>
-            <thead>
-              <tr>
-                <th>Event type</th>
-                <th>Tag name</th>
-                <th>Date</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <Droppable droppableId={droppableId} type="task">
-              {(provided_droppable) => {
-						return (
-						<tbody
-							{...provided_droppable.droppableProps}
-							ref={provided_droppable.innerRef}
-						>
-							{items.map((item: any, k: number) => (
-								<Draggable key={String(item.time)} draggableId={String(item.time)} index={k} >
-									{(provided_draggable) => {
-										return (
-											<tr 
-											ref={provided_draggable.innerRef}
-											{...provided_draggable.draggableProps}
-											{...provided_draggable.dragHandleProps}
-											>
-												<td>{item.event.type}</td>
-												<td>{item.setup.url || item.event.type}</td>
-												<td>{new Date(item.time).toLocaleString()}</td>
-												<td>
-													<Button
-													onClick={() => {
-														deleteItem(k);
-													}}
-													variant="danger"
-													>
-													<TrashIcon />
-													</Button>
-												</td>
-											</tr>
-										)
-									}}
-							</Draggable>
-							))}
-							{provided_droppable.placeholder}
-							</tbody>
-              		)
-				  	}}
-            </Droppable>
-          </Table>
-        </DragDropContext>
-      </Row>
-    </Container>
-  );
+        <Row>
+          <Button
+            onClick={() => {
+              saveJsonRenderer({
+                records: [...items],
+              });
+            }}
+          >
+            Save JSON
+          </Button>
+          &nbsp;
+          <Button onClick={showModal}>Show statistics</Button>
+        </Row>
+        <Row>
+          <DragDropContext onDragEnd={onDragEnd}>
+            <Table style={{
+          tableLayout: 'auto'
+        }}>
+              <thead>
+                <tr>
+                  <th>Event type</th>
+                  <th>Tag name</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <Droppable droppableId={droppableId} type="task">
+                {(provided_droppable) => {
+              return (
+              <tbody
+                {...provided_droppable.droppableProps}
+                ref={provided_droppable.innerRef}
+              >
+                {items.map((item: any, k: number) => (
+                  <Draggable key={String(item.time)} draggableId={String(item.time)} index={k} >
+                    {(provided_draggable) => {
+                      return (
+                        <tr 
+                        ref={provided_draggable.innerRef}
+                        {...provided_draggable.draggableProps}
+                        {...provided_draggable.dragHandleProps}
+                        >
+                          <td>{item.event.type}</td>
+                          <td>{item.setup.url || item.event.type}</td>
+                          <td>{new Date(item.time).toLocaleString()}</td>
+                          <td>
+                            <Button
+                            onClick={() => {
+                              deleteItem(k);
+                            }}
+                            variant="danger"
+                            >
+                            <TrashIcon />
+                            </Button>
+                          </td>
+                        </tr>
+                      )
+                    }}
+                </Draggable>
+                ))}
+                {provided_droppable.placeholder}
+                </tbody>
+                    )
+              }}
+              </Droppable>
+            </Table>
+          </DragDropContext>
+        </Row>
+      </Container>
+    );
+  } else {
+    return <p>Getting json file</p>;
+  }
 };
 
 export default hot(module)(App);
